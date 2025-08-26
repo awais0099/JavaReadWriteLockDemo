@@ -1,0 +1,46 @@
+name: Java ReadWriteLock Demo CI
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [ '17', '21' ]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: 'temurin'
+
+      - name: Build with Maven
+        run: mvn clean compile --no-transfer-progress
+
+      - name: Run the main class
+        run: mvn exec:java -Dexec.mainClass=com.example.CounterWithReadWriteLock --no-transfer-progress
+
+      - name: Verify output
+        run: |
+          OUTPUT=$(mvn exec:java -Dexec.mainClass=com.example.CounterWithReadWriteLock --no-transfer-progress)
+          echo "$OUTPUT"
+          if [[ "$OUTPUT" == *"Final count: 2000"* ]]; then
+            echo "Success: Final count is 2000 as expected"
+          else
+            echo "Error: Final count is not 2000"
+            exit 1
+          fi
+          if [[ $? -eq 0 ]]; then
+            echo "Success: Program executed without errors"
+          else
+            echo "Error: Program failed to execute"
+            exit 1
+          fi
